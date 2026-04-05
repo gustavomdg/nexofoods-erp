@@ -1,0 +1,339 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================================
+// CORE: Multi-Tenant
+// ============================================================
+
+/// Representa uma empresa/inquilino no sistema. Mapeada 1:1 com uma Org no Clerk.
+model Tenant {
+  id         String   @id @default(cuid())
+  clerkOrgId String   @unique // org_id do Clerk
+  nome       String
+  cnpj       String?
+  email      String?
+  telefone   String?
+  logo       String?
+  plano      Plano    @default(BASICO)
+  ativo      Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Módulos ativados para este tenant
+  modulos ModuloAtivado[]
+
+  // Relações Core
+  clientes     Cliente[]
+  fornecedores Fornecedor[]
+  produtos     Produto[]
+  contasPagar  ContaPagar[]
+  contasReceber ContaReceber[]
+
+  // Relações Nicho: Restaurante
+  mesas    Mesa[]
+  comandas Comanda[]
+
+  @@map("tenants")
+}
+
+/// Controla quais módulos estão ativos para cada tenant.
+/// Permite ligar/desligar nichos como: RESTAURANTE, DEPOSITO_GAS, etc.
+model ModuloAtivado {
+  id        String   @id @default(cuid())
+  tenantId  String
+  modulo    Modulo
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, modulo])
+  @@map("modulos_ativados")
+}
+
+// ============================================================
+// CORE: Cadastros Básicos
+// ============================================================
+
+model Cliente {
+  id        String      @id @default(cuid())
+  tenantId  String
+  nome      String
+  cpfCnpj   String?
+  email     String?
+  telefone  String?
+  tipo      TipoPessoa  @default(FISICA)
+  ativo     Boolean     @default(true)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  tenant    Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  contasReceber ContaReceber[]
+  comandas      Comanda[]
+
+  @@index([tenantId])
+  @@map("clientes")
+}
+
+model Fornecedor {
+  id        String   @id @default(cuid())
+  tenantId  String
+  nome      String
+  cnpj      String?
+  email     String?
+  telefone  String?
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  contasPagar ContaPagar[]
+
+  @@index([tenantId])
+  @@map("fornecedores")
+}
+
+/// Produto genérico usado pelo Core. O nicho de restaurante estende com FichaTecnica.
+model Produto {
+  id          String       @id @default(cuid())
+  tenantId    String
+  nome        String
+  descricao   String?
+  preco       Decimal      @db.Decimal(10, 2)
+  custo       Decimal?     @db.Decimal(10, 2)
+  unidade     String       @default("UN") // UN, KG, L, etc.
+  categoria   String?
+  codigoBarras String?
+  ativo       Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  fichaTecnica     FichaTecnicaItem[] @relation("PratoPrincipal") // Produto é um prato
+  ingredienteEm    FichaTecnicaItem[] @relation("Ingrediente")    // Produto é ingrediente
+  itensPedido      ItemPedido[]
+
+  @@index([tenantId])
+  @@map("produtos")
+}
+
+// ============================================================
+// CORE: Financeiro
+// ============================================================
+
+model ContaPagar {
+  id           String        @id @default(cuid())
+  tenantId     String
+  fornecedorId String?
+  descricao    String
+  valor        Decimal       @db.Decimal(10, 2)
+  vencimento   DateTime
+  pagamento    DateTime?
+  status       StatusFinanceiro @default(PENDENTE)
+  categoria    String?
+  observacao   String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  fornecedor   Fornecedor?   @relation(fields: [fornecedorId], references: [id])
+
+  @@index([tenantId])
+  @@map("contas_pagar")
+}
+
+model ContaReceber {
+  id         String        @id @default(cuid())
+  tenantId   String
+  clienteId  String?
+  descricao  String
+  valor      Decimal       @db.Decimal(10, 2)
+  vencimento DateTime
+  recebimento DateTime?
+  status     StatusFinanceiro @default(PENDENTE)
+  categoria  String?
+  observacao String?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  tenant     Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  cliente    Cliente?      @relation(fields: [clienteId], references: [id])
+
+  @@index([tenantId])
+  @@map("contas_receber")
+}
+
+// ============================================================
+// CORE: Fiscal (Estrutura base - sem integração SEFAZ no MVP)
+// ============================================================
+
+/// Armazena metadados fiscais do tenant para futura emissão de NF-e/NFC-e.
+/// A integração real com SEFAZ é implementada em fases posteriores.
+model ConfiguracaoFiscal {
+  id             String   @id @default(cuid())
+  tenantId       String   @unique
+  regime         RegimeTributario @default(SIMPLES_NACIONAL)
+  cnpjEmitente   String?
+  inscricaoEstadual String?
+  inscricaoMunicipal String?
+  crt            Int      @default(1) // Código de Regime Tributário
+  ambiente       AmbienteFiscal @default(HOMOLOGACAO)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("configuracoes_fiscais")
+}
+
+// ============================================================
+// NICHO: Restaurante — Salão
+// ============================================================
+
+model Mesa {
+  id        String     @id @default(cuid())
+  tenantId  String
+  numero    Int
+  capacidade Int       @default(4)
+  status    StatusMesa @default(LIVRE)
+  area      String?    // Ex: "Salão", "Terraço", "Delivery"
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  comandas Comanda[]
+
+  @@unique([tenantId, numero])
+  @@map("mesas")
+}
+
+model Comanda {
+  id         String        @id @default(cuid())
+  tenantId   String
+  mesaId     String?
+  clienteId  String?
+  numero     Int
+  status     StatusComanda @default(ABERTA)
+  total      Decimal       @default(0) @db.Decimal(10, 2)
+  desconto   Decimal       @default(0) @db.Decimal(10, 2)
+  observacao String?
+  abertura   DateTime      @default(now())
+  fechamento DateTime?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  tenant     Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  mesa       Mesa?         @relation(fields: [mesaId], references: [id])
+  cliente    Cliente?      @relation(fields: [clienteId], references: [id])
+
+  itens ItemPedido[]
+
+  @@index([tenantId])
+  @@map("comandas")
+}
+
+model ItemPedido {
+  id          String      @id @default(cuid())
+  comandaId   String
+  produtoId   String
+  quantidade  Decimal     @db.Decimal(10, 3)
+  precoUnit   Decimal     @db.Decimal(10, 2)
+  subtotal    Decimal     @db.Decimal(10, 2)
+  status      StatusItem  @default(PENDENTE)
+  observacao  String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  comanda     Comanda     @relation(fields: [comandaId], references: [id], onDelete: Cascade)
+  produto     Produto     @relation(fields: [produtoId], references: [id])
+
+  @@index([comandaId])
+  @@map("itens_pedido")
+}
+
+// ============================================================
+// NICHO: Restaurante — Estoque com Ficha Técnica
+// ============================================================
+
+/// Detalha quais ingredientes (Produto do tipo insumo) compõem um prato (Produto do tipo prato).
+/// Quando um prato é vendido, o sistema deduz automaticamente os ingredientes do estoque.
+model FichaTecnicaItem {
+  id             String   @id @default(cuid())
+  pratoId        String   // FK para Produto (tipo prato)
+  ingredienteId  String   // FK para Produto (tipo ingrediente/insumo)
+  quantidade     Decimal  @db.Decimal(10, 4) // Ex: 0.2500 kg de mussarela
+  unidade        String   // Unidade de medida do ingrediente nesta ficha
+
+  prato       Produto @relation("PratoPrincipal", fields: [pratoId], references: [id])
+  ingrediente Produto @relation("Ingrediente", fields: [ingredienteId], references: [id])
+
+  @@unique([pratoId, ingredienteId])
+  @@map("ficha_tecnica_itens")
+}
+
+// ============================================================
+// Enums
+// ============================================================
+
+enum Plano {
+  BASICO
+  PROFISSIONAL
+  ENTERPRISE
+}
+
+enum Modulo {
+  CORE
+  RESTAURANTE
+  DEPOSITO_GAS
+  AUTOPECAS
+  ESTETICA
+}
+
+enum TipoPessoa {
+  FISICA
+  JURIDICA
+}
+
+enum StatusFinanceiro {
+  PENDENTE
+  PAGO
+  CANCELADO
+  VENCIDO
+}
+
+enum StatusMesa {
+  LIVRE
+  OCUPADA
+  RESERVADA
+  MANUTENCAO
+}
+
+enum StatusComanda {
+  ABERTA
+  FECHADA
+  CANCELADA
+}
+
+enum StatusItem {
+  PENDENTE    // Aguardando envio à cozinha
+  CONFIRMADO  // Enviado para KDS
+  PREPARANDO  // Em preparo na cozinha
+  PRONTO      // Pronto para servir
+  SERVIDO     // Já entregue ao cliente
+  CANCELADO
+}
+
+enum RegimeTributario {
+  SIMPLES_NACIONAL
+  LUCRO_PRESUMIDO
+  LUCRO_REAL
+  MEI
+}
+
+enum AmbienteFiscal {
+  PRODUCAO
+  HOMOLOGACAO
+}
