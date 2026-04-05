@@ -1,4 +1,4 @@
-import { prisma } from "../client.js";
+import { prisma } from "../client";
 
 /**
  * Cria uma extensão do PrismaClient com isolamento automático por tenant.

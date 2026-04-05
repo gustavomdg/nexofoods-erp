@@ -1,10 +1,10 @@
-import { createTRPCRouter } from "./trpc.js";
-import { clientesRouter } from "./routers/core/clientes.js";
-import { fornecedoresRouter } from "./routers/core/fornecedores.js";
-import { produtosRouter } from "./routers/core/produtos.js";
-import { financeiroRouter } from "./routers/core/financeiro.js";
-import { mesasRouter } from "./routers/restaurante/mesas.js";
-import { comandasRouter } from "./routers/restaurante/comandas.js";
+import { createTRPCRouter } from "./trpc";
+import { clientesRouter } from "./routers/core/clientes";
+import { fornecedoresRouter } from "./routers/core/fornecedores";
+import { produtosRouter } from "./routers/core/produtos";
+import { financeiroRouter } from "./routers/core/financeiro";
+import { mesasRouter } from "./routers/restaurante/mesas";
+import { comandasRouter } from "./routers/restaurante/comandas";
 
 /**
  * Router raiz — agrega todos os sub-routers.

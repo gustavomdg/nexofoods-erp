@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure } from "../../trpc.js";
+import { createTRPCRouter, protectedProcedure } from "../../trpc";
 import { TRPCError } from "@trpc/server";
 
 export const comandasRouter = createTRPCRouter({

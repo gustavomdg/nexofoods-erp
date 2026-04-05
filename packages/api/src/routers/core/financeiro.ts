@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure } from "../../trpc.js";
+import { createTRPCRouter, protectedProcedure } from "../../trpc";
 
 const statusSchema = z.enum(["PENDENTE", "PAGO", "CANCELADO", "VENCIDO"]);
 
