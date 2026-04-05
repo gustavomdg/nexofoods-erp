@@ -89,17 +89,19 @@ async function VencimentosWidget() {
       status: "PENDENTE",
     });
 
-    const vencendoHoje = contasPagar.contas.filter((c) => {
+    type Conta = { vencimento: Date | string; valor: unknown };
+
+    const vencendoHoje = (contasPagar.contas as Conta[]).filter((c) => {
       const venc = new Date(c.vencimento);
       return venc.toDateString() === hoje.toDateString();
     });
 
-    const vencendoEm7 = contasPagar.contas.filter((c) => {
+    const vencendoEm7 = (contasPagar.contas as Conta[]).filter((c) => {
       const venc = new Date(c.vencimento);
       return venc > hoje && venc <= em7Dias;
     });
 
-    const vencidas = contasPagar.contas.filter((c) => {
+    const vencidas = (contasPagar.contas as Conta[]).filter((c) => {
       const venc = new Date(c.vencimento);
       return venc < hoje;
     });
