@@ -155,7 +155,7 @@ export function FornecedoresView() {
                   </td>
                 </tr>
               ) : (
-                data?.fornecedores.map((f) => (
+                data?.fornecedores.map((f: any) => (
                   <tr key={f.id} className="border-b border-white/5 hover:bg-white/3 transition-colors">
                     <td className="px-4 py-3 font-medium text-white">{f.nome}</td>
                     <td className="px-4 py-3 text-slate-400">{f.cnpj ?? "—"}</td>

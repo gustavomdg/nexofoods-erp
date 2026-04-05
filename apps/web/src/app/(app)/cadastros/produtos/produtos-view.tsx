@@ -206,7 +206,7 @@ export function ProdutosView() {
                   </td>
                 </tr>
               ) : (
-                data?.produtos.map((p) => (
+                data?.produtos.map((p: any) => (
                   <tr key={p.id} className="border-b border-white/5 hover:bg-white/3 transition-colors">
                     <td className="px-4 py-3">
                       <p className="font-medium text-white">{p.nome}</p>

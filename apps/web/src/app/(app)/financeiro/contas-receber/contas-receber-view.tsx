@@ -176,7 +176,7 @@ export function ContasReceberView() {
                   </td>
                 </tr>
               ) : (
-                data?.contas.map((c) => {
+                data?.contas.map((c: any) => {
                   const vencido = c.status === "PENDENTE" && new Date(c.vencimento) < new Date();
                   return (
                     <tr key={c.id} className="border-b border-slate-700/30 hover:bg-slate-700/20 transition-colors">
