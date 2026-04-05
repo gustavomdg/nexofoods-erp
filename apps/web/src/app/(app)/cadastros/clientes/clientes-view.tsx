@@ -192,7 +192,7 @@ export function ClientesView() {
                   </td>
                 </tr>
               ) : (
-                data?.clientes.map((c) => (
+                data?.clientes.map((c: any) => (
                   <tr key={c.id} className="border-b border-white/5 hover:bg-white/3 transition-colors">
                     <td className="px-4 py-3 font-medium text-white">{c.nome}</td>
                     <td className="px-4 py-3">
