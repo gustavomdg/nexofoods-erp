@@ -80,8 +80,8 @@ export function ContasPagarView() {
   }
 
   const totalPendente = data?.contas
-    .filter((c) => c.status === "PENDENTE")
-    .reduce((acc, c) => acc + Number(c.valor), 0) ?? 0;
+    .filter((c: any) => c.status === "PENDENTE")
+    .reduce((acc: number, c: any) => acc + Number(c.valor), 0) ?? 0;
 
   return (
     <div className="space-y-6">

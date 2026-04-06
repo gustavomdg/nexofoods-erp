@@ -5,6 +5,7 @@
     "baseUrl": ".",
     "declaration": false,
     "declarationMap": false,
+    "noImplicitAny": false,
     "paths": {
       "@/*": ["./src/*"]
     }
