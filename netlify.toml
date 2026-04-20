@@ -1,11 +1,8 @@
 [build]
-  base = "."
-  command = "npm run db:generate --workspace=@gastrosys/db && cd apps/web && npm run build"
-  publish = "apps/web/.next"
+  base = "apps/web"
+  command = "cd ../../ && npm run db:generate --workspace=@gastrosys/db && cd apps/web && npm run build"
+  publish = ".next"
 
 [build.environment]
   NODE_VERSION = "20"
   NPM_FLAGS = "--legacy-peer-deps"
-
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
